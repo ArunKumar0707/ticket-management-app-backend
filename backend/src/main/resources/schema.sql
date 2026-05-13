@@ -22,17 +22,17 @@ CREATE TABLE IF NOT EXISTS tickets (
         ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_ticket_id
+CREATE INDEX IF NOT EXISTS idx_ticket_id
 ON tickets(ticket_id);
 
-CREATE INDEX idx_project_assignment
+CREATE INDEX IF NOT EXISTS idx_project_assignment
 ON tickets(project_assignment);
 
-CREATE INDEX idx_current_status
+CREATE INDEX IF NOT EXISTS idx_current_status
 ON tickets(current_status);
 
-CREATE INDEX idx_priority
+CREATE INDEX IF NOT EXISTS idx_priority
 ON tickets(priority);
 
-CREATE INDEX idx_created_at
+CREATE INDEX IF NOT EXISTS idx_created_at
 ON tickets(created_at);
