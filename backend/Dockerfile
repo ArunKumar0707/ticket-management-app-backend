@@ -8,7 +8,7 @@ COPY src ./src
 
 RUN mvn clean package -DskipTests
 
-# Run stage
+# Runtime stage
 FROM eclipse-temurin:17-jdk
 
 WORKDIR /app

@@ -9,9 +9,30 @@ CREATE TABLE IF NOT EXISTS tickets (
     generation_date_time DATETIME,
     response_date_time DATETIME,
     resolution_time DATETIME,
-    current_status ENUM('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED') NOT NULL DEFAULT 'OPEN',
+    current_status ENUM(
+        'OPEN',
+        'IN_PROGRESS',
+        'RESOLVED',
+        'CLOSED'
+    ) NOT NULL DEFAULT 'OPEN',
     resolution_details TEXT,
     remarks TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_ticket_id
+ON tickets(ticket_id);
+
+CREATE INDEX idx_project_assignment
+ON tickets(project_assignment);
+
+CREATE INDEX idx_current_status
+ON tickets(current_status);
+
+CREATE INDEX idx_priority
+ON tickets(priority);
+
+CREATE INDEX idx_created_at
+ON tickets(created_at);
