@@ -43,5 +43,5 @@ CREATE TABLE IF NOT EXISTS employees (
 
 -- Foreign keys (added only if not already present - safe to re-run)
 ALTER TABLE tickets
-    ADD CONSTRAINT IF NOT EXISTS fk_ticket_project  FOREIGN KEY (project_id)  REFERENCES projects(id)  ON DELETE SET NULL,
-    ADD CONSTRAINT IF NOT EXISTS fk_ticket_assignee FOREIGN KEY (assignee_id) REFERENCES employees(id) ON DELETE SET NULL;
+    ADD CONSTRAINT fk_ticket_project  FOREIGN KEY (project_id)  REFERENCES projects(id)  ON DELETE SET NULL,
+    ADD CONSTRAINT fk_ticket_assignee FOREIGN KEY (assignee_id) REFERENCES employees(id) ON DELETE SET NULL;
