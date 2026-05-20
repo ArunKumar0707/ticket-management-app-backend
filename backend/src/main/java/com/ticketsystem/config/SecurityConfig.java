@@ -30,10 +30,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Autowired
-    @Lazy
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserRepository userRepository;
+
+    @Autowired
+    public void setJwtAuthFilter(
+        @Lazy JwtAuthenticationFilter jwtAuthFilter) {
+    this.jwtAuthFilter = jwtAuthFilter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
