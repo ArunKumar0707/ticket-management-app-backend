@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
+    private  JwtAuthenticationFilter jwtAuthFilter;
     private final UserRepository userRepository;
 
     @Autowired
