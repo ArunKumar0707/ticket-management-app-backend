@@ -31,7 +31,7 @@ public class Project {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "project_status", nullable = false, length = 20)
     private ProjectStatus status;
 
     @Column(name = "start_date")
