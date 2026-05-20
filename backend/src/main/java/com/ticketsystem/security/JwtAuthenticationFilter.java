@@ -24,7 +24,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final @Lazy UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(
