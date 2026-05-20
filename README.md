@@ -387,3 +387,96 @@ The toggle button (☀ / ☾) is in the top-right of the navbar. The selected th
 - `app.routes.ts` updated with 6 new lazy-loaded routes
 - `styles.css` converted to a full CSS custom property system with dark and light theme token sets
 - Existing ticket component CSS files extended with theme variable overrides (appended, no existing rules removed)
+
+---
+
+## Authentication & Security (v2 Addition)
+
+### Overview
+
+JWT-based stateless authentication with Spring Security 6 and role-based access control across the full stack.
+
+### Roles
+
+| Role | Tickets | Projects | Employees |
+|---|---|---|---|
+| `ADMIN` | Full CRUD | Full CRUD | Full CRUD |
+| `PROJECT_MANAGER` | View + Create + Edit | View + Create + Edit | View only |
+| `EMPLOYEE` | View + Update status | No access | No access |
+
+### Auth Endpoints
+
+| Method | Endpoint | Auth Required | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | No | Register a new user |
+| POST | `/api/auth/login` | No | Login, returns JWT |
+| GET | `/api/auth/me` | Yes | Get current user profile |
+
+**Login request:**
+```json
+{ "usernameOrEmail": "admin", "password": "secret123" }
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGci...",
+    "tokenType": "Bearer",
+    "userId": 1,
+    "username": "admin",
+    "email": "admin@nexus.io",
+    "role": "ADMIN"
+  }
+}
+```
+
+### New Environment Variables
+
+| Variable | Description | Default |
+|---|---|---|
+| `JWT_SECRET` | HS256 signing secret (min 32 chars) | Built-in dev default |
+| `JWT_EXPIRATION` | Token TTL in milliseconds | `86400000` (24h) |
+
+### New Backend Files
+
+| File | Purpose |
+|---|---|
+| `entity/User.java` | User JPA entity implementing `UserDetails` |
+| `entity/Role.java` | Enum: `ADMIN`, `PROJECT_MANAGER`, `EMPLOYEE` |
+| `repository/UserRepository.java` | User lookups by username/email |
+| `dto/RegisterRequest.java` | Validated registration payload |
+| `dto/LoginRequest.java` | Login credentials payload |
+| `dto/AuthResponse.java` | JWT + user info returned after auth |
+| `dto/UserProfileResponse.java` | `/me` endpoint response |
+| `security/JwtService.java` | Token generation and validation (JJWT 0.11.5) |
+| `security/JwtAuthenticationFilter.java` | `OncePerRequestFilter` — validates Bearer token |
+| `config/SecurityConfig.java` | `SecurityFilterChain` (Spring Security 6, stateless) |
+| `service/AuthService.java` | Auth service interface |
+| `serviceImpl/AuthServiceImpl.java` | Register, login, profile logic |
+| `controller/AuthController.java` | `/api/auth/**` endpoints |
+
+### New Frontend Files
+
+| File | Purpose |
+|---|---|
+| `models/auth.model.ts` | TypeScript interfaces for auth data |
+| `services/auth.service.ts` | Login/logout, token storage, role helpers, Angular signals |
+| `interceptors/jwt.interceptor.ts` | Attaches `Authorization: Bearer` header; handles 401 auto-logout |
+| `guards/auth.guard.ts` | Redirects unauthenticated users to `/login` |
+| `guards/role.guard.ts` | Redirects users without required role to `/tickets` |
+| `components/login/login.component.*` | Login page matching existing app aesthetics |
+
+### What Changed in Existing Files
+
+| File | Change |
+|---|---|
+| `pom.xml` | Added `spring-boot-starter-security`, `jjwt-api/impl/jackson` |
+| `schema.sql` | Added `users` table (`CREATE TABLE IF NOT EXISTS`) |
+| `application.properties` | Added `jwt.secret` and `jwt.expiration` |
+| `GlobalExceptionHandler.java` | Added handlers for `BadCredentialsException` and `AccessDeniedException` |
+| `app.component.ts` | Added user pill (username + role badge), logout button, role-based nav visibility |
+| `app.routes.ts` | All routes protected with `AuthGuard`; restricted routes use `RoleGuard` |
+| `app.config.ts` | Registered `JwtInterceptor` as `HTTP_INTERCEPTORS` |
