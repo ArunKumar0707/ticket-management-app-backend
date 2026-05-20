@@ -30,7 +30,7 @@ import org.springframework.context.annotation.Lazy;
 public class SecurityConfig {
 
     private final @Lazy JwtAuthenticationFilter jwtAuthFilter;
-    private final UserRepository userRepository;
+    private final @Lazy UserRepository userRepository;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
