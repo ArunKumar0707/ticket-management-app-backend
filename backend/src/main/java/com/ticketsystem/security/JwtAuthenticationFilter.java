@@ -19,6 +19,7 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
+@Lazy
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
