@@ -17,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
@@ -92,6 +94,26 @@ public class TicketController {
             @Valid @RequestBody TicketRequestDTO requestDTO) {
         TicketResponseDTO updated = ticketService.updateTicket(id, requestDTO);
         return ResponseEntity.ok(ApiResponse.success("Ticket updated successfully", updated));
+    }
+
+    // GET /api/tickets/my-tickets - Tickets assigned to the logged-in employee
+    @GetMapping("/my-tickets")
+    public ResponseEntity<ApiResponse<Page<TicketResponseDTO>>> getMyTickets(
+            Principal principal,
+            @RequestParam(required = false) CurrentStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        // Use the authenticated username as the assignee filter
+        String username = principal != null ? principal.getName() : "";
+        Page<TicketResponseDTO> tickets = ticketService.getTicketsByAssignee(username, status, pageable);
+        return ResponseEntity.ok(ApiResponse.success("My tickets retrieved", tickets));
     }
 
     // DELETE /api/tickets/{id} - Delete Ticket

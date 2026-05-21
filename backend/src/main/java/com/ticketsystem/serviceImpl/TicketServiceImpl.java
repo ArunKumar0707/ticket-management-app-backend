@@ -144,6 +144,13 @@ public class TicketServiceImpl implements TicketService {
         return ticketId;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<TicketResponseDTO> getTicketsByAssignee(String assignedEmployee, CurrentStatus status, Pageable pageable) {
+        return ticketRepository.findByAssignedEmployee(assignedEmployee, status, pageable)
+                .map(this::mapToResponseDTO);
+    }
+
     private TicketResponseDTO mapToResponseDTO(Ticket ticket) {
         return TicketResponseDTO.builder()
                 .id(ticket.getId())

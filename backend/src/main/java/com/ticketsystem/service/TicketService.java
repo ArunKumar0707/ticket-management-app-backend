@@ -30,4 +30,6 @@ public interface TicketService {
     );
 
     DashboardStatsDTO getDashboardStats();
+
+    Page<TicketResponseDTO> getTicketsByAssignee(String assignedEmployee, CurrentStatus status, Pageable pageable);
 }
