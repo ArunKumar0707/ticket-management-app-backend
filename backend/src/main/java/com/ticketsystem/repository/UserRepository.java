@@ -1,4 +1,5 @@
 package com.ticketsystem.repository;
+import com.ticketsystem.entity.Role;
 
 import com.ticketsystem.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,7 +17,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsernameOrEmail(String username, String email);
 
     boolean existsByUsername(String username);
-    
+
     boolean existsByRole(Role role);
 
     boolean existsByEmail(String email);
