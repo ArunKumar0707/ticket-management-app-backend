@@ -24,23 +24,37 @@ public class AdminDataSeeder implements ApplicationRunner {
     }
 
     private void seedDefaultAdmin() {
-        boolean adminExists = userRepository.findAll().stream()
-                .anyMatch(u -> u.getRole() == Role.ADMIN);
+        try {
 
-        if (adminExists) {
-            log.info("Admin user already exists — skipping seed.");
-            return;
+            boolean adminExists =
+                    userRepository.existsByRole(Role.ADMIN);
+
+            if (adminExists) {
+                log.info("Admin already exists.");
+                return;
+            }
+
+            User admin = User.builder()
+                    .username("admin")
+                    .email("admin@nexus.com")
+                    .password(
+                            passwordEncoder.encode("admin123")
+                    )
+                    .role(Role.ADMIN)
+                    .isActive(true)
+                    .build();
+
+            userRepository.save(admin);
+
+            log.info(
+                    "Default admin seeded successfully."
+            );
+
+        } catch (Exception e) {
+            log.error(
+                    "Failed to seed admin user",
+                    e
+            );
         }
-
-        User admin = User.builder()
-                .username("admin")
-                .email("admin@nexus.com")
-                .password(passwordEncoder.encode("admin123"))
-                .role(Role.ADMIN)
-                .isActive(true)
-                .build();
-
-        userRepository.save(admin);
-        log.info("Default admin user seeded: admin@nexus.com / admin123");
     }
 }
