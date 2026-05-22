@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Add user_id to employees for Employee ↔ User mapping (safe ALTER)
-ALTER TABLE employees ADD COLUMN IF NOT EXISTS user_id BIGINT NULL;
+-- ALTER TABLE employees ADD COLUMN IF NOT EXISTS user_id BIGINT NULL;
 
 -- Add FK if not exists (MySQL 8+ safe pattern via stored procedure won't work in schema.sql;
 -- JPA will handle the relationship; the column is enough for Hibernate)
