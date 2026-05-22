@@ -4,8 +4,12 @@ import com.ticketsystem.dto.ApiResponse;
 import com.ticketsystem.dto.DashboardStatsDTO;
 import com.ticketsystem.dto.TicketRequestDTO;
 import com.ticketsystem.dto.TicketResponseDTO;
+import com.ticketsystem.entity.Employee;
 import com.ticketsystem.entity.Ticket.CurrentStatus;
 import com.ticketsystem.entity.Ticket.Priority;
+import com.ticketsystem.entity.User;
+import com.ticketsystem.repository.EmployeeRepository;
+import com.ticketsystem.repository.UserRepository;
 import com.ticketsystem.service.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +30,8 @@ import java.security.Principal;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final UserRepository userRepository;
+    private final EmployeeRepository employeeRepository;
 
     // POST /api/tickets - Create Ticket
     @PostMapping
@@ -110,9 +116,34 @@ public class TicketController {
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        // Use the authenticated username as the assignee filter
-        String username = principal != null ? principal.getName() : "";
-        Page<TicketResponseDTO> tickets = ticketService.getTicketsByAssignee(username, status, pageable);
+
+        String assigneeName = "";
+        if (principal != null) {
+            // Try to resolve via Employee mapping first
+            userRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
+                    .ifPresent(user -> {
+                        if (user.getEmployeeId() != null) {
+                            employeeRepository.findById(user.getEmployeeId())
+                                    .ifPresent(emp -> {});
+                        }
+                    });
+
+            // Resolve employee name from User → Employee relationship
+            User user = userRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
+                    .orElse(null);
+            if (user != null && user.getEmployeeId() != null) {
+                Employee emp = employeeRepository.findById(user.getEmployeeId()).orElse(null);
+                if (emp != null) {
+                    assigneeName = emp.getEmployeeName();
+                }
+            }
+            // Fall back to username if no employee mapping
+            if (assigneeName.isEmpty()) {
+                assigneeName = principal.getName();
+            }
+        }
+
+        Page<TicketResponseDTO> tickets = ticketService.getTicketsByAssignee(assigneeName, status, pageable);
         return ResponseEntity.ok(ApiResponse.success("My tickets retrieved", tickets));
     }
 

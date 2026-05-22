@@ -16,6 +16,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     boolean existsByEmailAndIdNot(String email, Long id);
 
+    java.util.Optional<com.ticketsystem.entity.Employee> findByUserId(Long userId);
+
     @Query("SELECT e FROM Employee e WHERE " +
            "(:search IS NULL OR LOWER(e.employeeName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(e.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +

@@ -46,6 +46,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Auth endpoints - public
                 .requestMatchers("/api/auth/**").permitAll()
+                // User management — ADMIN only
+                .requestMatchers("/api/users/**").hasRole("ADMIN")
                 // Ticket endpoints - authenticated users
                 .requestMatchers(HttpMethod.GET, "/api/tickets/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/tickets/**").hasAnyRole("ADMIN", "PROJECT_MANAGER")

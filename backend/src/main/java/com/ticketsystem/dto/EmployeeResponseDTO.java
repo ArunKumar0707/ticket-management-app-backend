@@ -19,6 +19,7 @@ public class EmployeeResponseDTO {
     private String department;
     private String assignedProject;
     private EmployeeStatus status;
+    private Long userId;          // linked User account id
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

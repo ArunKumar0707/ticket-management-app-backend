@@ -45,6 +45,16 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             Pageable pageable
     );
 
+    // Find tickets for employee via their employee name (mapped from User → Employee)
+    @Query("SELECT t FROM Ticket t WHERE " +
+           "LOWER(t.assignedEmployee) LIKE LOWER(CONCAT('%', :employeeName, '%')) AND " +
+           "(:status IS NULL OR t.currentStatus = :status)")
+    Page<Ticket> findByEmployeeName(
+            @Param("employeeName") String employeeName,
+            @Param("status") CurrentStatus status,
+            Pageable pageable
+    );
+
     // Find the highest ticket sequence number for auto-generation
     @Query("SELECT MAX(CAST(SUBSTRING(t.ticketId, 5) AS int)) FROM Ticket t WHERE t.ticketId LIKE 'INC-%'")
     Integer findMaxTicketSequence();

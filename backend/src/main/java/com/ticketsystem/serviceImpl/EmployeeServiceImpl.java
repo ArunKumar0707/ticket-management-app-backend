@@ -98,6 +98,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .department(employee.getDepartment())
                 .assignedProject(employee.getAssignedProject())
                 .status(employee.getStatus())
+                .userId(employee.getUserId())
                 .createdAt(employee.getCreatedAt())
                 .updatedAt(employee.getUpdatedAt())
                 .build();

@@ -39,6 +39,14 @@ public class Employee {
     @Column(name = "status", nullable = false, length = 20)
     private EmployeeStatus status;
 
+    // One-to-one mapping to User account (optional)
+    @Column(name = "user_id")
+    private Long userId;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    private User linkedUser;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
