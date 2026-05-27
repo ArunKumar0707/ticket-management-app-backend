@@ -8,8 +8,6 @@ import com.ticketsystem.entity.Employee;
 import com.ticketsystem.entity.Ticket.CurrentStatus;
 import com.ticketsystem.entity.Ticket.Priority;
 import com.ticketsystem.repository.EmployeeRepository;
-import com.ticketsystem.entity.Employee;
-import com.ticketsystem.repository.EmployeeRepository;
 import com.ticketsystem.service.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -31,7 +30,6 @@ public class TicketController {
 
     private final TicketService ticketService;
     private final EmployeeRepository employeeRepository;
-
 
     // POST /api/tickets - Create Ticket
     @PostMapping
@@ -81,6 +79,7 @@ public class TicketController {
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
+
         Page<TicketResponseDTO> tickets = ticketService.searchTickets(
                 ticketId, projectAssignment, status, priority, pageable);
         return ResponseEntity.ok(ApiResponse.success("Search results retrieved", tickets));
@@ -117,29 +116,16 @@ public class TicketController {
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        String assigneeName = "";
-        if (principal != null) {
-            // Try to resolve via Employee mapping first
-            EmployeeRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
-                    .ifPresent(employee -> {
-                        if (employee.getEmployeeId() != null) {
-                            employeeRepository.findById(employee.getEmployeeId())
-                                    .ifPresent(emp -> {});
-                        }
-                    });
+        String assigneeName = principal != null ? principal.getName() : "";
 
-            // Resolve employee name from User → Employee relationship
-            Employee employee = employeeRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
-                    .orElse(null);
-            if (employee != null && employee.getEmployeeId() != null) {
-                Employee emp = employeeRepository.findById(employee.getEmployeeId()).orElse(null);
-                if (emp != null) {
-                    assigneeName = emp.getEmployeeName();
-                }
-            }
-            // Fall back to username if no employee mapping
-            if (assigneeName.isEmpty()) {
-                assigneeName = principal.getName();
+        if (principal != null) {
+            // Try to find employee by username or email
+            Optional<Employee> employeeOpt = employeeRepository.findByUsernameOrEmail(
+                    principal.getName(), principal.getName());
+
+            if (employeeOpt.isPresent()) {
+                Employee employee = employeeOpt.get();
+                assigneeName = employee.getEmployeeName(); // Use proper name field
             }
         }
 
