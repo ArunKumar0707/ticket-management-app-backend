@@ -103,9 +103,3 @@ public class ProjectServiceImpl implements ProjectService {
                 .build();
     }
 }
-
-    @Override
-    @Transactional(readOnly = true)
-    public java.util.List<com.ticketsystem.dto.ProjectResponseDTO> getProjectsByStatus(com.ticketsystem.entity.Project.ProjectStatus status) {
-        return projectRepository.findByStatus(status).stream().map(this::mapToResponseDTO).collect(java.util.stream.Collectors.toList());
-    }

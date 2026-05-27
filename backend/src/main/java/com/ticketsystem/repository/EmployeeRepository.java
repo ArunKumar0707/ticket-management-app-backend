@@ -7,23 +7,26 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
+
 import java.util.Optional;
 
-@Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
+    Optional<Employee> findByUsername(String username);
+    Optional<Employee> findByEmail(String email);
+    boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     boolean existsByEmailAndIdNot(String email, Long id);
+    boolean existsByUsernameAndIdNot(String username, Long id);
 
-    Optional<Employee> findByEmail(String email);
-    Optional<Employee> findByUserId(Long userId);
-
-    @Query("SELECT e FROM Employee e WHERE " +
-           "(:search IS NULL OR LOWER(e.employeeName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(e.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(e.department) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
-           "(:status IS NULL OR e.status = :status)")
+    @Query("""
+        SELECT e FROM Employee e
+        WHERE (:search IS NULL OR :search = ''
+               OR LOWER(e.employeeName) LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(e.email)        LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(e.username)     LIKE LOWER(CONCAT('%', :search, '%')))
+          AND (:status IS NULL OR e.status = :status)
+        """)
     Page<Employee> searchEmployees(
             @Param("search") String search,
             @Param("status") EmployeeStatus status,

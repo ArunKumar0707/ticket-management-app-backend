@@ -7,16 +7,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface EmployeeService {
-
-    EmployeeResponseDTO createEmployee(EmployeeRequestDTO requestDTO);
-
+    EmployeeResponseDTO createEmployee(EmployeeRequestDTO dto);
     Page<EmployeeResponseDTO> getAllEmployees(Pageable pageable);
-
     EmployeeResponseDTO getEmployeeById(Long id);
-
-    EmployeeResponseDTO updateEmployee(Long id, EmployeeRequestDTO requestDTO);
-
+    EmployeeResponseDTO updateEmployee(Long id, EmployeeRequestDTO dto);
     void deleteEmployee(Long id);
-
     Page<EmployeeResponseDTO> searchEmployees(String search, EmployeeStatus status, Pageable pageable);
 }
