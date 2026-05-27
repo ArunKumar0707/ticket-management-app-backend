@@ -7,9 +7,9 @@ import com.ticketsystem.dto.TicketResponseDTO;
 import com.ticketsystem.entity.Employee;
 import com.ticketsystem.entity.Ticket.CurrentStatus;
 import com.ticketsystem.entity.Ticket.Priority;
-import com.ticketsystem.entity.User;
 import com.ticketsystem.repository.EmployeeRepository;
-import com.ticketsystem.repository.UserRepository;
+import com.ticketsystem.entity.Employee;
+import com.ticketsystem.repository.EmployeeRepository;
 import com.ticketsystem.service.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +30,15 @@ import java.security.Principal;
 public class TicketController {
 
     private final TicketService ticketService;
-    private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
+
+    public TicketController(
+    TicketService ticketService,
+    EmployeeRepository employeeRepository
+) {
+    this.ticketService = ticketService;
+    this.employeeRepository = employeeRepository;
+}
 
     // POST /api/tickets - Create Ticket
     @PostMapping
@@ -120,19 +127,19 @@ public class TicketController {
         String assigneeName = "";
         if (principal != null) {
             // Try to resolve via Employee mapping first
-            userRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
-                    .ifPresent(user -> {
-                        if (user.getEmployeeId() != null) {
-                            employeeRepository.findById(user.getEmployeeId())
+            EmployeeRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
+                    .ifPresent(employee -> {
+                        if (employee.getEmployeeId() != null) {
+                            employeeRepository.findById(employee.getEmployeeId())
                                     .ifPresent(emp -> {});
                         }
                     });
 
             // Resolve employee name from User → Employee relationship
-            User user = userRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
+            Employee employee = EmployeeRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
                     .orElse(null);
-            if (user != null && user.getEmployeeId() != null) {
-                Employee emp = employeeRepository.findById(user.getEmployeeId()).orElse(null);
+            if (employee != null && employee.getEmployeeId() != null) {
+                Employee emp = employeeRepository.findById(employee.getEmployeeId()).orElse(null);
                 if (emp != null) {
                     assigneeName = emp.getEmployeeName();
                 }
