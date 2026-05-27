@@ -1,33 +1,23 @@
 package com.ticketsystem.dto;
 
 import com.ticketsystem.entity.Employee.EmployeeStatus;
-import com.ticketsystem.entity.Role;
-import lombok.Builder;
-import lombok.Data;
-
+import lombok.*;
 import java.time.LocalDateTime;
-import java.util.List;
 
-@Data
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class EmployeeResponseDTO {
+
     private Long id;
-    private String username;
-    private String email;
-    private Role role;
+    private String employeeCode;
     private String employeeName;
+    private String email;
     private String designation;
     private String department;
+    private String assignedProject;
+    private Long shiftId;
+    private String shiftName;
     private EmployeeStatus status;
-    private boolean isActive;
-    private List<ProjectSummaryDTO> projects;
+    private Long userId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    @Data @Builder
-    public static class ProjectSummaryDTO {
-        private Long id;
-        private String projectCode;
-        private String projectName;
-    }
 }

@@ -4,9 +4,12 @@ import com.ticketsystem.dto.ApiResponse;
 import com.ticketsystem.dto.DashboardStatsDTO;
 import com.ticketsystem.dto.TicketRequestDTO;
 import com.ticketsystem.dto.TicketResponseDTO;
+import com.ticketsystem.entity.Employee;
 import com.ticketsystem.entity.Ticket.CurrentStatus;
 import com.ticketsystem.entity.Ticket.Priority;
+import com.ticketsystem.entity.User;
 import com.ticketsystem.repository.EmployeeRepository;
+import com.ticketsystem.repository.UserRepository;
 import com.ticketsystem.service.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,106 +29,128 @@ import java.security.Principal;
 @CrossOrigin(origins = "http://localhost:4200")
 public class TicketController {
 
-    private final TicketService      ticketService;
-    private final EmployeeRepository employeeRepository;  // merged entity — UserRepository removed
+    private final TicketService ticketService;
+    private final UserRepository userRepository;
+    private final EmployeeRepository employeeRepository;
 
-    // POST /api/tickets
+    // POST /api/tickets - Create Ticket
     @PostMapping
     public ResponseEntity<ApiResponse<TicketResponseDTO>> createTicket(
             @Valid @RequestBody TicketRequestDTO requestDTO) {
+        TicketResponseDTO response = ticketService.createTicket(requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Ticket created successfully",
-                        ticketService.createTicket(requestDTO)));
+                .body(ApiResponse.success("Ticket created successfully", response));
     }
 
-    // GET /api/tickets
+    // GET /api/tickets - Get All Tickets (paginated)
     @GetMapping
     public ResponseEntity<ApiResponse<Page<TicketResponseDTO>>> getAllTickets(
-            @RequestParam(defaultValue = "0")        int page,
-            @RequestParam(defaultValue = "10")       int size,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc")     String sortDir) {
+            @RequestParam(defaultValue = "desc") String sortDir) {
 
-        Pageable pageable = buildPageable(page, size, sortBy, sortDir);
-        return ResponseEntity.ok(ApiResponse.success("Tickets retrieved successfully",
-                ticketService.getAllTickets(pageable)));
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<TicketResponseDTO> tickets = ticketService.getAllTickets(pageable);
+        return ResponseEntity.ok(ApiResponse.success("Tickets retrieved successfully", tickets));
     }
 
-    // GET /api/tickets/dashboard
+    // GET /api/tickets/dashboard - Dashboard Stats
     @GetMapping("/dashboard")
     public ResponseEntity<ApiResponse<DashboardStatsDTO>> getDashboardStats() {
-        return ResponseEntity.ok(ApiResponse.success("Dashboard stats retrieved",
-                ticketService.getDashboardStats()));
+        DashboardStatsDTO stats = ticketService.getDashboardStats();
+        return ResponseEntity.ok(ApiResponse.success("Dashboard stats retrieved", stats));
     }
 
-    // GET /api/tickets/search
+    // GET /api/tickets/search - Search Tickets
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<TicketResponseDTO>>> searchTickets(
             @RequestParam(required = false) String ticketId,
             @RequestParam(required = false) String projectAssignment,
             @RequestParam(required = false) CurrentStatus status,
             @RequestParam(required = false) Priority priority,
-            @RequestParam(defaultValue = "0")        int page,
-            @RequestParam(defaultValue = "10")       int size,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc")     String sortDir) {
+            @RequestParam(defaultValue = "desc") String sortDir) {
 
-        Pageable pageable = buildPageable(page, size, sortBy, sortDir);
-        return ResponseEntity.ok(ApiResponse.success("Search results retrieved",
-                ticketService.searchTickets(ticketId, projectAssignment, status, priority, pageable)));
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<TicketResponseDTO> tickets = ticketService.searchTickets(
+                ticketId, projectAssignment, status, priority, pageable);
+        return ResponseEntity.ok(ApiResponse.success("Search results retrieved", tickets));
     }
 
-    // GET /api/tickets/{id}
+    // GET /api/tickets/{id} - Get Ticket By ID
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TicketResponseDTO>> getTicketById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("Ticket retrieved successfully",
-                ticketService.getTicketById(id)));
+        TicketResponseDTO ticket = ticketService.getTicketById(id);
+        return ResponseEntity.ok(ApiResponse.success("Ticket retrieved successfully", ticket));
     }
 
-    // PUT /api/tickets/{id}
+    // PUT /api/tickets/{id} - Update Ticket
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<TicketResponseDTO>> updateTicket(
             @PathVariable Long id,
             @Valid @RequestBody TicketRequestDTO requestDTO) {
-        return ResponseEntity.ok(ApiResponse.success("Ticket updated successfully",
-                ticketService.updateTicket(id, requestDTO)));
+        TicketResponseDTO updated = ticketService.updateTicket(id, requestDTO);
+        return ResponseEntity.ok(ApiResponse.success("Ticket updated successfully", updated));
     }
 
-    // DELETE /api/tickets/{id}
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteTicket(@PathVariable Long id) {
-        ticketService.deleteTicket(id);
-        return ResponseEntity.ok(ApiResponse.success("Ticket deleted successfully", null));
-    }
-
-    // GET /api/tickets/my-tickets — tickets assigned to the logged-in employee
+    // GET /api/tickets/my-tickets - Tickets assigned to the logged-in employee
     @GetMapping("/my-tickets")
     public ResponseEntity<ApiResponse<Page<TicketResponseDTO>>> getMyTickets(
             Principal principal,
             @RequestParam(required = false) CurrentStatus status,
-            @RequestParam(defaultValue = "0")        int page,
-            @RequestParam(defaultValue = "10")       int size,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc")     String sortDir) {
+            @RequestParam(defaultValue = "desc") String sortDir) {
 
-        // With the merged Employee entity, principal.getName() is the username.
-        // Resolve it directly to employeeName (what tickets are assigned against).
-        String assigneeName = principal == null ? "" :
-                employeeRepository.findByUsername(principal.getName())
-                        .map(emp -> emp.getEmployeeName())
-                        .orElse(principal.getName());   // fallback: use username as-is
-
-        Pageable pageable = buildPageable(page, size, sortBy, sortDir);
-        return ResponseEntity.ok(ApiResponse.success("My tickets retrieved",
-                ticketService.getTicketsByAssignee(assigneeName, status, pageable)));
-    }
-
-    // ── helper ────────────────────────────────────────────────────────────────
-
-    private Pageable buildPageable(int page, int size, String sortBy, String sortDir) {
-        Sort sort = "asc".equalsIgnoreCase(sortDir)
+        Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
-        return PageRequest.of(page, size, sort);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        String assigneeName = "";
+        if (principal != null) {
+            // Try to resolve via Employee mapping first
+            userRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
+                    .ifPresent(user -> {
+                        if (user.getEmployeeId() != null) {
+                            employeeRepository.findById(user.getEmployeeId())
+                                    .ifPresent(emp -> {});
+                        }
+                    });
+
+            // Resolve employee name from User → Employee relationship
+            User user = userRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
+                    .orElse(null);
+            if (user != null && user.getEmployeeId() != null) {
+                Employee emp = employeeRepository.findById(user.getEmployeeId()).orElse(null);
+                if (emp != null) {
+                    assigneeName = emp.getEmployeeName();
+                }
+            }
+            // Fall back to username if no employee mapping
+            if (assigneeName.isEmpty()) {
+                assigneeName = principal.getName();
+            }
+        }
+
+        Page<TicketResponseDTO> tickets = ticketService.getTicketsByAssignee(assigneeName, status, pageable);
+        return ResponseEntity.ok(ApiResponse.success("My tickets retrieved", tickets));
+    }
+
+    // DELETE /api/tickets/{id} - Delete Ticket
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteTicket(@PathVariable Long id) {
+        ticketService.deleteTicket(id);
+        return ResponseEntity.ok(ApiResponse.success("Ticket deleted successfully", null));
     }
 }

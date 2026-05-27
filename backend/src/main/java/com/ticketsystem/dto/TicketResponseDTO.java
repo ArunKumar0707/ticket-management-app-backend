@@ -29,14 +29,4 @@ public class TicketResponseDTO {
     private String remarks;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    // ── SLA enrichment fields (computed at query time) ───────────────────────
-    /** Deadline by which the ticket must be resolved (working-hours aware) */
-    private LocalDateTime slaDeadline;
-
-    /** True if current time > slaDeadline and ticket is not yet resolved/closed */
-    private boolean slaBreached;
-
-    /** Working hours elapsed since ticket creation */
-    private Long workingHoursElapsed;
 }

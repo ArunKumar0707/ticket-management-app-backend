@@ -1,23 +1,28 @@
 package com.ticketsystem.dto;
 
 import com.ticketsystem.entity.Employee.EmployeeStatus;
-import com.ticketsystem.entity.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.*;
 
-import java.util.Set;
-
-@Data
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class EmployeeRequestDTO {
-    @NotBlank private String username;
-    @NotBlank @Email private String email;
-    private String password;          // optional on update
-    @NotNull  private Role role;
-    @NotBlank private String employeeName;
+
+    private String employeeCode;
+
+    @NotBlank(message = "Employee name is required")
+    private String employeeName;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Valid email is required")
+    private String email;
+
     private String designation;
     private String department;
-    @NotNull  private EmployeeStatus status;
-    private Set<Long> projectIds;     // many-to-many
+    private String assignedProject;
+    private Long shiftId;
+
+    @NotNull(message = "Status is required")
+    private EmployeeStatus status;
 }

@@ -1,9 +1,8 @@
 package com.ticketsystem.config;
 
-import com.ticketsystem.entity.Employee;
-import com.ticketsystem.entity.Employee.EmployeeStatus;
 import com.ticketsystem.entity.Role;
-import com.ticketsystem.repository.EmployeeRepository;
+import com.ticketsystem.entity.User;
+import com.ticketsystem.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -16,25 +15,46 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class AdminDataSeeder implements ApplicationRunner {
 
-    private final EmployeeRepository employeeRepository;
-    private final PasswordEncoder    passwordEncoder;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!employeeRepository.existsByUsername("admin")) {
-            Employee admin = Employee.builder()
+        seedDefaultAdmin();
+    }
+
+    private void seedDefaultAdmin() {
+        try {
+
+            boolean adminExists =
+                    userRepository.existsByRole(Role.ADMIN);
+
+            if (adminExists) {
+                log.info("Admin already exists.");
+                return;
+            }
+
+            User admin = User.builder()
                     .username("admin")
-                    .email("admin@nexus.local")
-                    .password(passwordEncoder.encode("admin123"))
+                    .email("admin@nexus.com")
+                    .password(
+                            passwordEncoder.encode("admin123")
+                    )
                     .role(Role.ADMIN)
-                    .employeeName("System Administrator")
-                    .designation("Administrator")
-                    .department("IT")
-                    .status(EmployeeStatus.ACTIVE)
                     .isActive(true)
                     .build();
-            employeeRepository.save(admin);
-            log.info("Default admin account created — username: admin  password: admin123");
+
+            userRepository.save(admin);
+
+            log.info(
+                    "Default admin seeded successfully."
+            );
+
+        } catch (Exception e) {
+            log.error(
+                    "Failed to seed admin user",
+                    e
+            );
         }
     }
 }

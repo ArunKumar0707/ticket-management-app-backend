@@ -13,68 +13,79 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/employees")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:4200")
 public class EmployeeController {
 
     private final EmployeeService employeeService;
 
+    // POST /api/employees - Create Employee
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> create(
-            @Valid @RequestBody EmployeeRequestDTO dto) {
+    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> createEmployee(
+            @Valid @RequestBody EmployeeRequestDTO requestDTO) {
+        EmployeeResponseDTO response = employeeService.createEmployee(requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Employee created", employeeService.createEmployee(dto)));
+                .body(ApiResponse.success("Employee created successfully", response));
     }
 
+    // GET /api/employees - Get All Employees (paginated)
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
-    public ResponseEntity<ApiResponse<Page<EmployeeResponseDTO>>> getAll(
-            @RequestParam(defaultValue = "0")  int page,
+    public ResponseEntity<ApiResponse<Page<EmployeeResponseDTO>>> getAllEmployees(
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc")      String sortDir) {
-        Pageable p = PageRequest.of(page, size,
-                "desc".equalsIgnoreCase(sortDir) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending());
-        return ResponseEntity.ok(ApiResponse.success("OK", employeeService.getAllEmployees(p)));
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<EmployeeResponseDTO> employees = employeeService.getAllEmployees(pageable);
+        return ResponseEntity.ok(ApiResponse.success("Employees retrieved successfully", employees));
     }
 
+    // GET /api/employees/search - Search Employees
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
-    public ResponseEntity<ApiResponse<Page<EmployeeResponseDTO>>> search(
+    public ResponseEntity<ApiResponse<Page<EmployeeResponseDTO>>> searchEmployees(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) EmployeeStatus status,
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc")      String sortDir) {
-        Pageable p = PageRequest.of(page, size,
-                "desc".equalsIgnoreCase(sortDir) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending());
-        return ResponseEntity.ok(ApiResponse.success("OK",
-                employeeService.searchEmployees(search, status, p)));
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<EmployeeResponseDTO> employees = employeeService.searchEmployees(search, status, pageable);
+        return ResponseEntity.ok(ApiResponse.success("Search results retrieved", employees));
     }
 
+    // GET /api/employees/{id} - Get Employee By ID
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','PROJECT_MANAGER')")
-    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("OK", employeeService.getEmployeeById(id)));
+    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> getEmployeeById(@PathVariable Long id) {
+        EmployeeResponseDTO employee = employeeService.getEmployeeById(id);
+        return ResponseEntity.ok(ApiResponse.success("Employee retrieved successfully", employee));
     }
 
+    // PUT /api/employees/{id} - Update Employee
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> update(
-            @PathVariable Long id, @Valid @RequestBody EmployeeRequestDTO dto) {
-        return ResponseEntity.ok(ApiResponse.success("Employee updated", employeeService.updateEmployee(id, dto)));
+    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> updateEmployee(
+            @PathVariable Long id,
+            @Valid @RequestBody EmployeeRequestDTO requestDTO) {
+        EmployeeResponseDTO updated = employeeService.updateEmployee(id, requestDTO);
+        return ResponseEntity.ok(ApiResponse.success("Employee updated successfully", updated));
     }
 
+    // DELETE /api/employees/{id} - Delete Employee
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteEmployee(@PathVariable Long id) {
         employeeService.deleteEmployee(id);
-        return ResponseEntity.ok(ApiResponse.success("Employee deleted", null));
+        return ResponseEntity.ok(ApiResponse.success("Employee deleted successfully", null));
     }
 }

@@ -1,6 +1,5 @@
 package com.ticketsystem.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -8,8 +7,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(name = "projects")
@@ -35,19 +32,13 @@ public class Project {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "project_status", nullable = false, length = 20)
-    @Builder.Default
-    private ProjectStatus status = ProjectStatus.ACTIVE;
+    private ProjectStatus status;
 
     @Column(name = "start_date")
     private LocalDate startDate;
 
     @Column(name = "end_date")
     private LocalDate endDate;
-
-    @ManyToMany(mappedBy = "projects", fetch = FetchType.LAZY)
-    @JsonIgnore
-    @Builder.Default
-    private Set<Employee> employees = new HashSet<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
