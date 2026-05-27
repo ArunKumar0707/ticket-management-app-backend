@@ -32,13 +32,6 @@ public class TicketController {
     private final TicketService ticketService;
     private final EmployeeRepository employeeRepository;
 
-    public TicketController(
-    TicketService ticketService,
-    EmployeeRepository employeeRepository
-) {
-    this.ticketService = ticketService;
-    this.employeeRepository = employeeRepository;
-}
 
     // POST /api/tickets - Create Ticket
     @PostMapping
@@ -136,7 +129,7 @@ public class TicketController {
                     });
 
             // Resolve employee name from User → Employee relationship
-            Employee employee = EmployeeRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
+            Employee employee = employeeRepository.findByUsernameOrEmail(principal.getName(), principal.getName())
                     .orElse(null);
             if (employee != null && employee.getEmployeeId() != null) {
                 Employee emp = employeeRepository.findById(employee.getEmployeeId()).orElse(null);
