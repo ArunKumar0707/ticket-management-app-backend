@@ -36,7 +36,7 @@ public class UserManagementController {
             throw new IllegalArgumentException("Current password is incorrect");
         emp.setPassword(passwordEncoder.encode(req.getNewPassword()));
         employeeRepository.save(emp);
-        return ResponseEntity.ok(ApiResponse.success(null, "Password changed"));
+        return ResponseEntity.ok(ApiResponse.success("Password changed",null));
     }
 
     /** Activate employee account */
@@ -47,7 +47,7 @@ public class UserManagementController {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + id));
         emp.setActive(true);
         employeeRepository.save(emp);
-        return ResponseEntity.ok(ApiResponse.success(null, "Activated"));
+        return ResponseEntity.ok(ApiResponse.success("Activated",null));
     }
 
     /** Deactivate employee account */
@@ -58,6 +58,6 @@ public class UserManagementController {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + id));
         emp.setActive(false);
         employeeRepository.save(emp);
-        return ResponseEntity.ok(ApiResponse.success(null, "Deactivated"));
+        return ResponseEntity.ok(ApiResponse.success("Deactivated",null));
     }
 }
