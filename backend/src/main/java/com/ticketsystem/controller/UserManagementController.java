@@ -1,6 +1,7 @@
 package com.ticketsystem.controller;
 
-import com.ticketsystem.dto.*;
+import com.ticketsystem.dto.ApiResponse;
+import com.ticketsystem.dto.ChangePasswordRequest;
 import com.ticketsystem.entity.Employee;
 import com.ticketsystem.exception.ResourceNotFoundException;
 import com.ticketsystem.repository.EmployeeRepository;
@@ -14,8 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 
 /**
- * Kept for backward-compatibility with the frontend /api/users endpoints.
- * All data now lives in the employees table (merged entity).
+ * Backward-compatible /api/users helpers.
+ * All employee/user data lives in the merged employees table.
  */
 @RestController
 @RequestMapping("/api/users")
@@ -30,16 +31,20 @@ public class UserManagementController {
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @Valid @RequestBody ChangePasswordRequest req,
             Principal principal) {
+
         Employee emp = employeeRepository.findByUsername(principal.getName())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         if (!passwordEncoder.matches(req.getCurrentPassword(), emp.getPassword()))
             throw new IllegalArgumentException("Current password is incorrect");
+
         emp.setPassword(passwordEncoder.encode(req.getNewPassword()));
         employeeRepository.save(emp);
-        return ResponseEntity.ok(ApiResponse.success(null, "Password changed"));
+
+        return ResponseEntity.ok(ApiResponse.success("Password changed", null));
     }
 
-    /** Activate employee account */
+    /** Activate employee account (ADMIN only) */
     @PatchMapping("/{id}/activate")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> activate(@PathVariable Long id) {
@@ -47,10 +52,10 @@ public class UserManagementController {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + id));
         emp.setActive(true);
         employeeRepository.save(emp);
-        return ResponseEntity.ok(ApiResponse.success(null, "Activated"));
+        return ResponseEntity.ok(ApiResponse.success("Employee activated", null));
     }
 
-    /** Deactivate employee account */
+    /** Deactivate employee account (ADMIN only) */
     @PatchMapping("/{id}/deactivate")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
@@ -58,6 +63,6 @@ public class UserManagementController {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + id));
         emp.setActive(false);
         employeeRepository.save(emp);
-        return ResponseEntity.ok(ApiResponse.success(null, "Deactivated"));
+        return ResponseEntity.ok(ApiResponse.success("Employee deactivated", null));
     }
 }
