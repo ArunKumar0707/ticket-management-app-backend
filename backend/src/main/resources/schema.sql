@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS sla_config (
 -- 8. Migration: add shift_id column to existing employees table if missing
 -- ----------------------------------------------------------------------------
 ALTER TABLE employees
-    ADD COLUMN IF NOT EXISTS shift_id BIGINT NULL;
+    ADD COLUMN shift_id BIGINT NULL;
 
 -- Add FK only if it doesn't already exist (MySQL 8+ supports IF NOT EXISTS on FK)
 -- For safety we use a stored procedure approach
