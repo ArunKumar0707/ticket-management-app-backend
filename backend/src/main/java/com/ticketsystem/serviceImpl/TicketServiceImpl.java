@@ -26,14 +26,14 @@ import java.util.Optional;
 @Slf4j
 public class TicketServiceImpl implements TicketService {
 
-    private final TicketRepository       ticketRepository;
-    private final SlaCalculationService  slaCalculationService;
-    private final SlaConfigRepository    slaConfigRepository;
+    private final TicketRepository      ticketRepository;
+    private final SlaCalculationService slaCalculationService;
+    private final SlaConfigRepository   slaConfigRepository;
 
     @Override
     @Transactional
     public TicketResponseDTO createTicket(TicketRequestDTO requestDTO) {
-        log.info("Creating new ticket for project: {}", requestDTO.getProjectAssignment());
+        log.info("Creating ticket for project: {}", requestDTO.getProjectAssignment());
 
         String ticketId = generateTicketId();
 
@@ -55,7 +55,7 @@ public class TicketServiceImpl implements TicketService {
                 .build();
 
         Ticket saved = ticketRepository.save(ticket);
-        log.info("Ticket created with ID: {}", saved.getTicketId());
+        log.info("Ticket created: {}", saved.getTicketId());
         return mapToResponseDTO(saved);
     }
 
@@ -96,9 +96,8 @@ public class TicketServiceImpl implements TicketService {
     @Override
     @Transactional
     public void deleteTicket(Long id) {
-        Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found: " + id));
-        ticketRepository.delete(ticket);
+        ticketRepository.delete(ticketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found: " + id)));
     }
 
     @Override
@@ -106,7 +105,8 @@ public class TicketServiceImpl implements TicketService {
     public Page<TicketResponseDTO> searchTickets(
             String ticketId, String projectAssignment,
             CurrentStatus status, Priority priority, Pageable pageable) {
-        return ticketRepository.searchTickets(ticketId, projectAssignment, status, priority, pageable)
+        return ticketRepository
+                .searchTickets(ticketId, projectAssignment, status, priority, pageable)
                 .map(this::mapToResponseDTO);
     }
 
@@ -119,15 +119,17 @@ public class TicketServiceImpl implements TicketService {
         long resolved   = ticketRepository.countByCurrentStatus(CurrentStatus.RESOLVED);
         long closed     = ticketRepository.countByCurrentStatus(CurrentStatus.CLOSED);
 
-        // Count SLA-breached open/in-progress tickets
         long slaBreached = ticketRepository.findAll().stream()
                 .filter(t -> t.getCurrentStatus() == CurrentStatus.OPEN
                           || t.getCurrentStatus() == CurrentStatus.IN_PROGRESS)
                 .filter(t -> {
                     try {
                         return slaCalculationService.isSlaBreached(
-                                t.getPriority().name(), t.getSupportLevel().name(),
-                                t.getGenerationDateTime() != null ? t.getGenerationDateTime() : t.getCreatedAt());
+                                t.getPriority().name(),
+                                t.getSupportLevel().name(),
+                                t.getGenerationDateTime() != null
+                                        ? t.getGenerationDateTime() : t.getCreatedAt(),
+                                t.getAssignedEmployee());
                     } catch (Exception e) { return false; }
                 })
                 .count();
@@ -182,7 +184,7 @@ public class TicketServiceImpl implements TicketService {
                 .updatedAt(ticket.getUpdatedAt())
                 .build();
 
-        // ── Enrich with SLA data ──────────────────────────────────────────────
+        // ── Enrich with SLA data, using assigned employee's shift ─────────────
         try {
             LocalDateTime createdAt = ticket.getGenerationDateTime() != null
                     ? ticket.getGenerationDateTime() : ticket.getCreatedAt();
@@ -190,11 +192,13 @@ public class TicketServiceImpl implements TicketService {
             if (createdAt != null && ticket.getPriority() != null && ticket.getSupportLevel() != null) {
                 String priorityName = ticket.getPriority().name();
                 String levelName    = ticket.getSupportLevel().name();
+                String assignee     = ticket.getAssignedEmployee();   // may be null
 
                 slaConfigRepository.findByPriorityAndSupportLevel(priorityName, levelName)
                         .ifPresent(cfg -> {
+                            // Pass assignee so the employee's specific shift is used
                             LocalDateTime deadline = slaCalculationService
-                                    .addWorkingHours(createdAt, cfg.getResolutionTimeHours());
+                                    .addWorkingHours(createdAt, cfg.getResolutionTimeHours(), assignee);
                             dto.setSlaDeadline(deadline);
 
                             boolean active = ticket.getCurrentStatus() != Ticket.CurrentStatus.RESOLVED
@@ -202,7 +206,7 @@ public class TicketServiceImpl implements TicketService {
                             dto.setSlaBreached(active && LocalDateTime.now().isAfter(deadline));
 
                             long elapsed = slaCalculationService
-                                    .workingMinutesBetween(createdAt, LocalDateTime.now()) / 60;
+                                    .workingMinutesBetween(createdAt, LocalDateTime.now(), assignee) / 60;
                             dto.setWorkingHoursElapsed(elapsed);
                         });
             }

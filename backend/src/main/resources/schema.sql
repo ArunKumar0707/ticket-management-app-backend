@@ -1,9 +1,22 @@
 -- =============================================================================
--- NEXUS TICKETING — Refactored Schema
+-- NEXUS TICKETING — Schema (idempotent CREATE IF NOT EXISTS)
 -- =============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. EMPLOYEES  (merged Employee + User — single source of truth)
+-- 1. SHIFT HOURS  (must exist before employees references it)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS shift_hours (
+    id          BIGINT       AUTO_INCREMENT PRIMARY KEY,
+    shift_name  VARCHAR(100) NOT NULL,
+    start_time  TIME         NOT NULL,
+    end_time    TIME         NOT NULL,
+    is_active   BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ----------------------------------------------------------------------------
+-- 2. EMPLOYEES  (merged Employee + User)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS employees (
     id            BIGINT       AUTO_INCREMENT PRIMARY KEY,
@@ -16,12 +29,14 @@ CREATE TABLE IF NOT EXISTS employees (
     designation   VARCHAR(100),
     department    VARCHAR(100),
     status        ENUM('ACTIVE','INACTIVE','ON_LEAVE') NOT NULL DEFAULT 'ACTIVE',
+    shift_id      BIGINT       NULL,
     created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP,
-    updated_at    DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at    DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_emp_shift FOREIGN KEY (shift_id) REFERENCES shift_hours(id) ON DELETE SET NULL
 );
 
 -- ----------------------------------------------------------------------------
--- 2. PROJECTS
+-- 3. PROJECTS
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS projects (
     id             BIGINT      AUTO_INCREMENT PRIMARY KEY,
@@ -36,7 +51,7 @@ CREATE TABLE IF NOT EXISTS projects (
 );
 
 -- ----------------------------------------------------------------------------
--- 3. EMPLOYEE ↔ PROJECT  (Many-to-Many mapping table)
+-- 4. EMPLOYEE ↔ PROJECT  (Many-to-Many)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS employee_projects (
     employee_id BIGINT NOT NULL,
@@ -47,41 +62,28 @@ CREATE TABLE IF NOT EXISTS employee_projects (
 );
 
 -- ----------------------------------------------------------------------------
--- 4. TICKETS
+-- 5. TICKETS
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS tickets (
-    id                 BIGINT      AUTO_INCREMENT PRIMARY KEY,
-    ticket_id          VARCHAR(20) NOT NULL UNIQUE,
-    project_assignment VARCHAR(100) NOT NULL,
-    issue_description  TEXT        NOT NULL,
-    assigned_employee  VARCHAR(100),
-    support_level      ENUM('L1','L2','L3') NOT NULL,
-    priority           ENUM('P1_CRITICAL','P2_HIGH','P3_MEDIUM','P4_LOW') NOT NULL,
+    id                   BIGINT      AUTO_INCREMENT PRIMARY KEY,
+    ticket_id            VARCHAR(20) NOT NULL UNIQUE,
+    project_assignment   VARCHAR(100) NOT NULL,
+    issue_description    TEXT        NOT NULL,
+    assigned_employee    VARCHAR(100),
+    support_level        ENUM('L1','L2','L3') NOT NULL,
+    priority             ENUM('P1_CRITICAL','P2_HIGH','P3_MEDIUM','P4_LOW') NOT NULL,
     generation_date_time DATETIME,
     response_date_time   DATETIME,
     resolution_time      DATETIME,
-    current_status     ENUM('OPEN','IN_PROGRESS','RESOLVED','CLOSED') NOT NULL DEFAULT 'OPEN',
-    resolution_details TEXT,
-    remarks            TEXT,
-    created_at         DATETIME    DEFAULT CURRENT_TIMESTAMP,
-    updated_at         DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    current_status       ENUM('OPEN','IN_PROGRESS','RESOLVED','CLOSED') NOT NULL DEFAULT 'OPEN',
+    resolution_details   TEXT,
+    remarks              TEXT,
+    created_at           DATETIME    DEFAULT CURRENT_TIMESTAMP,
+    updated_at           DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- ----------------------------------------------------------------------------
--- 5. SHIFT HOURS  (configuration)
--- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS shift_hours (
-    id          BIGINT       AUTO_INCREMENT PRIMARY KEY,
-    shift_name  VARCHAR(100) NOT NULL,
-    start_time  TIME         NOT NULL,
-    end_time    TIME         NOT NULL,
-    is_active   BOOLEAN      NOT NULL DEFAULT TRUE,
-    created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- ----------------------------------------------------------------------------
--- 6. HOLIDAYS  (configuration — weekends excluded automatically in code)
+-- 6. HOLIDAYS  (weekends excluded automatically in code)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS holidays (
     id           BIGINT       AUTO_INCREMENT PRIMARY KEY,
@@ -93,7 +95,7 @@ CREATE TABLE IF NOT EXISTS holidays (
 );
 
 -- ----------------------------------------------------------------------------
--- 7. SLA CONFIG  (configuration)
+-- 7. SLA CONFIG
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sla_config (
     id                    BIGINT       AUTO_INCREMENT PRIMARY KEY,
@@ -106,3 +108,30 @@ CREATE TABLE IF NOT EXISTS sla_config (
     updated_at            DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_sla_priority_level (priority, support_level)
 );
+
+-- ----------------------------------------------------------------------------
+-- 8. Migration: add shift_id column to existing employees table if missing
+-- ----------------------------------------------------------------------------
+ALTER TABLE employees
+    ADD COLUMN IF NOT EXISTS shift_id BIGINT NULL;
+
+-- Add FK only if it doesn't already exist (MySQL 8+ supports IF NOT EXISTS on FK)
+-- For safety we use a stored procedure approach
+DROP PROCEDURE IF EXISTS add_shift_fk;
+DELIMITER $$
+CREATE PROCEDURE add_shift_fk()
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'employees'
+      AND CONSTRAINT_NAME = 'fk_emp_shift'
+      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+  ) THEN
+    ALTER TABLE employees
+      ADD CONSTRAINT fk_emp_shift FOREIGN KEY (shift_id) REFERENCES shift_hours(id) ON DELETE SET NULL;
+  END IF;
+END$$
+DELIMITER ;
+CALL add_shift_fk();
+DROP PROCEDURE IF EXISTS add_shift_fk;

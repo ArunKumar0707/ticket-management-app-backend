@@ -17,7 +17,6 @@ import java.util.Set;
 /**
  * Merged Employee+User entity.
  * Implements UserDetails so Spring Security can load it directly.
- * Replaces the old separate Employee and User tables.
  */
 @Entity
 @Table(name = "employees")
@@ -32,7 +31,7 @@ public class Employee implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ── Auth fields (formerly User) ──────────────────────────────────────
+    // ── Auth fields ───────────────────────────────────────────────────────────
     @Column(name = "username", unique = true, nullable = false, length = 100)
     private String username;
 
@@ -50,7 +49,7 @@ public class Employee implements UserDetails {
     @Builder.Default
     private boolean isActive = true;
 
-    // ── Employee profile fields ───────────────────────────────────────────
+    // ── Employee profile fields ───────────────────────────────────────────────
     @Column(name = "employee_name", nullable = false, length = 100)
     private String employeeName;
 
@@ -65,7 +64,12 @@ public class Employee implements UserDetails {
     @Builder.Default
     private EmployeeStatus status = EmployeeStatus.ACTIVE;
 
-    // ── Many-to-Many: Employee ↔ Project ─────────────────────────────────
+    // ── Shift assignment (optional — null means "no specific shift / use all active shifts") ──
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shift_id")
+    private ShiftHours shiftHours;
+
+    // ── Many-to-Many: Employee ↔ Project ──────────────────────────────────────
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "employee_projects",
@@ -83,7 +87,7 @@ public class Employee implements UserDetails {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // ── UserDetails ───────────────────────────────────────────────────────
+    // ── UserDetails ───────────────────────────────────────────────────────────
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));

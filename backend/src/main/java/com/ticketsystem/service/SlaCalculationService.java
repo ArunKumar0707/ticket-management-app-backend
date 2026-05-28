@@ -2,23 +2,39 @@ package com.ticketsystem.service;
 
 import java.time.LocalDateTime;
 
-/**
- * Calculates working-hours durations between two timestamps,
- * honouring shift hours, weekends and configured holidays.
- */
 public interface SlaCalculationService {
+
     /**
-     * @return working minutes between start and end
+     * Count working minutes between two timestamps using system-wide shift config.
      */
     long workingMinutesBetween(LocalDateTime start, LocalDateTime end);
 
     /**
-     * @return the deadline LocalDateTime that is N working hours after start
+     * Count working minutes between two timestamps respecting the assigned
+     * employee's shift (falls back to all active shifts if employee has none).
+     */
+    long workingMinutesBetween(LocalDateTime start, LocalDateTime end,
+                                String assignedEmployeeUsername);
+
+    /**
+     * Add working hours to a start time using system-wide shift config.
      */
     LocalDateTime addWorkingHours(LocalDateTime start, double workingHours);
 
     /**
-     * @return true if the ticket with the given priority + supportLevel is breached
+     * Add working hours to a start time respecting the assigned employee's shift.
+     */
+    LocalDateTime addWorkingHours(LocalDateTime start, double workingHours,
+                                   String assignedEmployeeUsername);
+
+    /**
+     * Check if SLA is breached for a ticket using system-wide shifts.
      */
     boolean isSlaBreached(String priority, String supportLevel, LocalDateTime createdAt);
+
+    /**
+     * Check if SLA is breached taking into account the assigned employee's shift.
+     */
+    boolean isSlaBreached(String priority, String supportLevel,
+                           LocalDateTime createdAt, String assignedEmployee);
 }

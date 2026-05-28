@@ -20,7 +20,14 @@ public class EmployeeResponseDTO {
     private String department;
     private EmployeeStatus status;
     private boolean isActive;
+
+    // Shift summary
+    private Long shiftId;
+    private String shiftName;
+
+    // Projects
     private List<ProjectSummaryDTO> projects;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

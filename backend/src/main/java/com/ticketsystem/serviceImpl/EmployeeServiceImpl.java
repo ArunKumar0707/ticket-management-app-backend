@@ -6,9 +6,11 @@ import com.ticketsystem.dto.EmployeeResponseDTO.ProjectSummaryDTO;
 import com.ticketsystem.entity.Employee;
 import com.ticketsystem.entity.Employee.EmployeeStatus;
 import com.ticketsystem.entity.Project;
+import com.ticketsystem.entity.ShiftHours;
 import com.ticketsystem.exception.ResourceNotFoundException;
 import com.ticketsystem.repository.EmployeeRepository;
 import com.ticketsystem.repository.ProjectRepository;
+import com.ticketsystem.repository.ShiftHoursRepository;
 import com.ticketsystem.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,10 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,9 +28,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class EmployeeServiceImpl implements EmployeeService {
 
-    private final EmployeeRepository employeeRepository;
-    private final ProjectRepository  projectRepository;
-    private final PasswordEncoder    passwordEncoder;
+    private final EmployeeRepository  employeeRepository;
+    private final ProjectRepository   projectRepository;
+    private final ShiftHoursRepository shiftHoursRepository;
+    private final PasswordEncoder     passwordEncoder;
 
     @Override
     @Transactional
@@ -52,6 +52,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .department(dto.getDepartment())
                 .status(dto.getStatus())
                 .isActive(true)
+                .shiftHours(resolveShift(dto.getShiftId()))
                 .projects(resolveProjects(dto.getProjectIds()))
                 .build();
 
@@ -88,6 +89,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         emp.setDesignation(dto.getDesignation());
         emp.setDepartment(dto.getDepartment());
         emp.setStatus(dto.getStatus());
+        emp.setShiftHours(resolveShift(dto.getShiftId()));
         emp.setProjects(resolveProjects(dto.getProjectIds()));
 
         return mapToDTO(employeeRepository.save(emp));
@@ -112,6 +114,12 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + id));
     }
 
+    private ShiftHours resolveShift(Long shiftId) {
+        if (shiftId == null) return null;
+        return shiftHoursRepository.findById(shiftId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shift not found: " + shiftId));
+    }
+
     private Set<Project> resolveProjects(Set<Long> ids) {
         if (ids == null || ids.isEmpty()) return new HashSet<>();
         return new HashSet<>(projectRepository.findAllById(ids));
@@ -126,6 +134,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                             .projectCode(p.getProjectCode())
                             .projectName(p.getProjectName())
                             .build())
+                    .sorted(Comparator.comparing(ProjectSummaryDTO::getProjectCode))
                     .collect(Collectors.toList());
 
         return EmployeeResponseDTO.builder()
@@ -138,6 +147,8 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .department(e.getDepartment())
                 .status(e.getStatus())
                 .isActive(e.isActive())
+                .shiftId(e.getShiftHours() != null ? e.getShiftHours().getId() : null)
+                .shiftName(e.getShiftHours() != null ? e.getShiftHours().getShiftName() : null)
                 .projects(projects)
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
